@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
@@ -7,11 +9,26 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import RequestLoggingMiddleware, logger
+from app.db.session import check_db_connection
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Application started")
+    db_version = await check_db_connection()
+    if db_version:
+        logger.info("Database connected — %s", db_version)
+    else:
+        logger.error("Database connection failed")
+    logger.info("API docs available at /docs")
+    yield
+
 
 app = FastAPI(
     title="Primetrade Backend",
     description="Scalable REST API with JWT authentication and role-based access control.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
