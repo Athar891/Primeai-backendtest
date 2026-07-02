@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:8001/api/v1";
+const API_BASE = "https://primeai-backendtest.onrender.com/api/v1";
 const TOKEN_KEY = "primetrade_token";
 
 function getToken() {
