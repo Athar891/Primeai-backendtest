@@ -80,6 +80,30 @@ python3 -m http.server 5500
 
 Open `http://127.0.0.1:5500/index.html`. Make sure `CORS_ORIGINS` in `backend/.env` includes this origin (it does by default).
 
+#### Frontend Guide
+
+**Step 1: Registration**
+- Navigate to the **Register** tab.
+- Enter your test email.
+- Enter your test password.
+- Click on the **Register** button to create a new account.
+
+**Step 2: Login**
+- Navigate to the **Login** tab.
+- Enter your test email.
+- Enter your test password.
+- Click on the **Log In** button to access the task dashboard.
+
+**Step 3: Task Management**
+Once logged in, you can manage your tasks:
+- **Add a Task:**
+  - Add a title for your task.
+  - Give a description to your task.
+  - Click on the status button to change the status of your task.
+  - Click on the **Add Task** button to successfully add the task.
+- **Update a Task:** Click on the **Edit** button to update the task.
+- **Remove a Task:** Click on the **Delete** button to remove the task.
+
 ### 4. Run tests
 
 ```bash
