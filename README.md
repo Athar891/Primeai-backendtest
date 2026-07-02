@@ -303,6 +303,25 @@ Once logged in, you can manage your tasks:
 
 ![Step 3: Task Management](assets/step3_dashboard.png)
 
+### Step 4: Admin Login
+
+- Ensure you have an account registered with the `ADMIN_EMAIL` configured in your `.env` (default is `admin@example.com`).
+- Navigate to the **Login** tab.
+- Enter the admin email.
+- Enter the admin password.
+- Click on the **Log In** button to access the dashboard with admin privileges (to manage all users and tasks).
+
+![Step 4: Admin Login](assets/step4_adminLogin.png)
+
+### Step 5: Admin Dashboard
+
+Once logged in as an admin, you have elevated privileges on the dashboard:
+- **View All Users:** You can see a list of all registered users in the system.
+- **Manage All Tasks:** You can view, edit, and delete tasks created by any user, not just your own.
+- The interface will display tasks across the system, allowing for full administrative control.
+
+![Step 5: Admin Dashboard](assets/step5_adminDashboard.png)
+
 ---
 
 # Testing
