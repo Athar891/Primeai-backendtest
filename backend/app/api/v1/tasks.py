@@ -5,7 +5,7 @@ from app.api.deps import get_current_user, get_db
 from app.crud.task import create_task, delete_task, get_task, list_tasks, update_task
 from app.models.task import TaskStatus
 from app.models.user import User, UserRole
-from app.schemas.task import TaskCreate, TaskListResponse, TaskRead, TaskUpdate
+from app.schemas.task import TaskCreate, TaskListResponse, TaskOwnerRead, TaskRead, TaskUpdate
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -15,13 +15,38 @@ def _ensure_can_access(task, current_user: User) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this task")
 
 
+def _serialize_task(task, current_user: User) -> TaskRead:
+    """Convert a Task ORM object to TaskRead, exposing owner details to admins only.
+
+    Owner details are intentionally omitted for normal users, who only ever see
+    their own tasks. Building the schema explicitly (rather than relying on ORM
+    attribute access during response serialization) also avoids an async lazy
+    load of ``task.owner``.
+    """
+    owner = None
+    if current_user.role == UserRole.admin and task.owner is not None:
+        owner = TaskOwnerRead(id=task.owner.id, email=task.owner.email, role=task.owner.role.value)
+
+    return TaskRead(
+        id=task.id,
+        title=task.title,
+        description=task.description,
+        status=task.status,
+        owner_id=task.owner_id,
+        created_at=task.created_at,
+        updated_at=task.updated_at,
+        owner=owner,
+    )
+
+
 @router.post("", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
 async def create_task_endpoint(
     task_in: TaskCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await create_task(db, task_in, owner_id=current_user.id)
+    task = await create_task(db, task_in, owner_id=current_user.id)
+    return _serialize_task(task, current_user)
 
 
 @router.get("", response_model=TaskListResponse)
@@ -37,7 +62,8 @@ async def list_tasks_endpoint(
     items, total = await list_tasks(
         db, current_user, skip=skip, limit=limit, status_filter=status_filter, search=search, sort=sort
     )
-    return TaskListResponse(total=total, skip=skip, limit=limit, items=items)
+    serialized = [_serialize_task(task, current_user) for task in items]
+    return TaskListResponse(total=total, skip=skip, limit=limit, items=serialized)
 
 
 @router.get("/{task_id}", response_model=TaskRead)
@@ -50,7 +76,7 @@ async def get_task_endpoint(
     if task is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     _ensure_can_access(task, current_user)
-    return task
+    return _serialize_task(task, current_user)
 
 
 @router.put("/{task_id}", response_model=TaskRead)
@@ -64,7 +90,8 @@ async def update_task_endpoint(
     if task is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     _ensure_can_access(task, current_user)
-    return await update_task(db, task, task_in)
+    updated = await update_task(db, task, task_in)
+    return _serialize_task(updated, current_user)
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)

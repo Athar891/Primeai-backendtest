@@ -1,5 +1,6 @@
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.task import Task, TaskStatus
 from app.models.user import User, UserRole
@@ -23,11 +24,17 @@ async def create_task(db: AsyncSession, task_in: TaskCreate, owner_id: int) -> T
     db.add(task)
     await db.commit()
     await db.refresh(task)
+    # Load the owner relationship so callers can serialize owner details without
+    # triggering a lazy load in async context.
+    await db.refresh(task, attribute_names=["owner"])
     return task
 
 
 async def get_task(db: AsyncSession, task_id: int) -> Task | None:
-    return await db.get(Task, task_id)
+    result = await db.execute(
+        select(Task).options(selectinload(Task.owner)).where(Task.id == task_id)
+    )
+    return result.scalar_one_or_none()
 
 
 async def list_tasks(
@@ -45,6 +52,9 @@ async def list_tasks(
     if current_user.role != UserRole.admin:
         query = query.where(Task.owner_id == current_user.id)
         count_query = count_query.where(Task.owner_id == current_user.id)
+    else:
+        # Admins see all tasks together with their owner details.
+        query = query.options(selectinload(Task.owner))
 
     if status_filter is not None:
         query = query.where(Task.status == status_filter)
@@ -70,6 +80,9 @@ async def update_task(db: AsyncSession, task: Task, task_in: TaskUpdate) -> Task
         setattr(task, field, value)
     await db.commit()
     await db.refresh(task)
+    # Reload the owner relationship (expired by the commit above) so serialization
+    # stays safe in async context.
+    await db.refresh(task, attribute_names=["owner"])
     return task
 
 

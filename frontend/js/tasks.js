@@ -133,10 +133,18 @@ function buildTaskElement(task) {
   const el = document.createElement("div");
   el.className = "task-item";
 
+  // task.owner is only present in the API response for admin viewers.
+  const ownerHtml = task.owner
+    ? `<p class="task-owner">Owner: ${escapeHtml(task.owner.email)}${
+        task.owner.role ? ` <span class="owner-role">${escapeHtml(task.owner.role)}</span>` : ""
+      }</p>`
+    : "";
+
   el.innerHTML = `
     <div class="task-info">
       <h3>${escapeHtml(task.title)}</h3>
       ${task.description ? `<p>${escapeHtml(task.description)}</p>` : ""}
+      ${ownerHtml}
       <span class="badge ${task.status}">${task.status.replace("_", " ")}</span>
     </div>
     <div class="task-actions">

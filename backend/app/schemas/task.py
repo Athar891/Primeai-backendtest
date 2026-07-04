@@ -27,6 +27,14 @@ class TaskUpdate(BaseModel):
     )
 
 
+class TaskOwnerRead(BaseModel):
+    id: int
+    email: str
+    role: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TaskRead(BaseModel):
     id: int
     title: str
@@ -35,6 +43,9 @@ class TaskRead(BaseModel):
     owner_id: int
     created_at: datetime
     updated_at: datetime
+    # Populated with the task owner's details for admin viewers only; ``None`` for
+    # normal users, who only ever see their own tasks.
+    owner: TaskOwnerRead | None = None
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -47,6 +58,7 @@ class TaskRead(BaseModel):
                 "owner_id": 1,
                 "created_at": "2026-07-01T12:00:00Z",
                 "updated_at": "2026-07-01T12:00:00Z",
+                "owner": {"id": 1, "email": "owner@example.com", "role": "user"},
             }
         },
     )

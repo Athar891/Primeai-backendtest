@@ -50,3 +50,35 @@ async def test_admin_list_shows_all_tasks(client, user_token, admin_token):
 
     resp = await client.get("/api/v1/tasks", headers={"Authorization": f"Bearer {admin_token}"})
     assert resp.json()["total"] == 2
+
+
+async def test_admin_list_includes_task_owner_details(client, user_token, admin_token):
+    await client.post("/api/v1/tasks", json={"title": "User task"}, headers={"Authorization": f"Bearer {user_token}"})
+
+    resp = await client.get("/api/v1/tasks", headers={"Authorization": f"Bearer {admin_token}"})
+    assert resp.status_code == 200
+    owners_by_title = {item["title"]: item["owner"] for item in resp.json()["items"]}
+
+    owner = owners_by_title["User task"]
+    assert owner is not None
+    assert owner["email"] == "jane@example.com"
+    assert owner["role"] == "user"
+
+
+async def test_user_list_does_not_expose_owner_details(client, user_token):
+    await client.post("/api/v1/tasks", json={"title": "My task"}, headers={"Authorization": f"Bearer {user_token}"})
+
+    resp = await client.get("/api/v1/tasks", headers={"Authorization": f"Bearer {user_token}"})
+    assert resp.status_code == 200
+    assert resp.json()["items"][0]["owner"] is None
+
+
+async def test_admin_single_task_read_includes_owner(client, user_token, admin_token):
+    create_resp = await client.post(
+        "/api/v1/tasks", json={"title": "User task"}, headers={"Authorization": f"Bearer {user_token}"}
+    )
+    task_id = create_resp.json()["id"]
+
+    resp = await client.get(f"/api/v1/tasks/{task_id}", headers={"Authorization": f"Bearer {admin_token}"})
+    assert resp.status_code == 200
+    assert resp.json()["owner"]["email"] == "jane@example.com"
